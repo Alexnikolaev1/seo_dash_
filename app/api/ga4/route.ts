@@ -79,21 +79,16 @@ export async function GET(req: NextRequest) {
     }
 
     const summary = mapGa4ReportToSummary(json as Ga4ReportJson);
-    if (summary) {
-      return NextResponse.json({ data: summary, isDemo: false });
+    const hasRows =
+      Array.isArray((json as Ga4ReportJson).rows) &&
+      (json as Ga4ReportJson).rows!.length > 0;
+    if (!hasRows) {
+      console.warn(
+        LOG,
+        "runReport OK but no rows (no traffic in period or data not ready yet)"
+      );
     }
-
-    console.error(
-      LOG,
-      "mapGa4ReportToSummary returned null; raw keys:",
-      json && typeof json === "object" ? Object.keys(json as object) : typeof json,
-      "sample:",
-      raw.slice(0, 1500)
-    );
-    return NextResponse.json({
-      data: getDemoGA4Data(days),
-      isDemo: true,
-    });
+    return NextResponse.json({ data: summary, isDemo: false });
   } catch (e) {
     console.error(LOG, "exception", e);
     return NextResponse.json({

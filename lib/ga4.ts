@@ -7,13 +7,22 @@ export interface Ga4ReportJson {
   }>;
 }
 
+const EMPTY_SUMMARY: GA4Summary = {
+  sessions: 0,
+  users: 0,
+  pageviews: 0,
+  avgDuration: 0,
+  channels: [],
+};
+
 /**
  * Преобразует ответ runReport с dimension sessionDefaultChannelGroup
  * и метриками sessions, totalUsers, screenPageViews, averageSessionDuration.
+ * Пустой `rows` — валидный ответ GA4 (нет данных за период), возвращаем нули, не null.
  */
-export function mapGa4ReportToSummary(json: Ga4ReportJson): GA4Summary | null {
+export function mapGa4ReportToSummary(json: Ga4ReportJson): GA4Summary {
   const rows = json.rows;
-  if (!rows?.length) return null;
+  if (!rows?.length) return { ...EMPTY_SUMMARY };
 
   let totalSessions = 0;
   let totalUsers = 0;
