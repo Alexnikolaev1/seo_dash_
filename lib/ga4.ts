@@ -1,6 +1,6 @@
 import type { GA4Channel, GA4Summary } from "@/types/seo";
 
-interface Ga4ReportJson {
+export interface Ga4ReportJson {
   rows?: Array<{
     dimensionValues?: Array<{ value?: string }>;
     metricValues?: Array<{ value?: string }>;

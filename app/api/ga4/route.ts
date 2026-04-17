@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
 import { getDemoGA4Data } from "@/lib/demo-data";
-import { mapGa4ReportToSummary } from "@/lib/ga4";
+import { mapGa4ReportToSummary, type Ga4ReportJson } from "@/lib/ga4";
 
 const LOG = "[api/ga4]";
 
@@ -78,7 +78,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const summary = mapGa4ReportToSummary(json);
+    const summary = mapGa4ReportToSummary(json as Ga4ReportJson);
     if (summary) {
       return NextResponse.json({ data: summary, isDemo: false });
     }
