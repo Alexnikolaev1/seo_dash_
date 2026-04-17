@@ -4,14 +4,23 @@ import { NextRequest, NextResponse } from "next/server";
 import { getDemoGA4Data } from "@/lib/demo-data";
 import { mapGa4ReportToSummary } from "@/lib/ga4";
 
+const LOG = "[api/ga4]";
+
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
   const { searchParams } = new URL(req.url);
-  const propertyId =
+  const propertyIdRaw =
     searchParams.get("propertyId") ?? process.env.GA4_PROPERTY_ID ?? "";
+  const propertyId = propertyIdRaw.trim();
   const days = Number(searchParams.get("days") || 28);
 
   if (!session?.accessToken || !propertyId) {
+    console.error(
+      LOG,
+      "demo: missing prerequisites",
+      !session?.accessToken ? "no accessToken (re-login or session issue)" : null,
+      !propertyId ? "GA4_PROPERTY_ID empty after trim" : null
+    );
     return NextResponse.json({
       data: getDemoGA4Data(days),
       isDemo: true,
@@ -43,23 +52,50 @@ export async function GET(req: NextRequest) {
       }
     );
 
+    const raw = await res.text();
+
     if (!res.ok) {
+      console.error(
+        LOG,
+        "Google runReport failed",
+        { status: res.status, statusText: res.statusText, propertyId },
+        raw.slice(0, 2500)
+      );
       return NextResponse.json({
         data: getDemoGA4Data(days),
         isDemo: true,
       });
     }
 
-    const json = await res.json();
+    let json: unknown;
+    try {
+      json = JSON.parse(raw) as unknown;
+    } catch (e) {
+      console.error(LOG, "invalid JSON from Google", raw.slice(0, 500), e);
+      return NextResponse.json({
+        data: getDemoGA4Data(days),
+        isDemo: true,
+      });
+    }
+
     const summary = mapGa4ReportToSummary(json);
     if (summary) {
       return NextResponse.json({ data: summary, isDemo: false });
     }
+
+    console.error(
+      LOG,
+      "mapGa4ReportToSummary returned null; raw keys:",
+      json && typeof json === "object" ? Object.keys(json as object) : typeof json,
+      "sample:",
+      raw.slice(0, 1500)
+    );
     return NextResponse.json({
       data: getDemoGA4Data(days),
       isDemo: true,
     });
-  } catch {
+  } catch (e) {
+    console.error(LOG, "exception", e);
     return NextResponse.json({
       data: getDemoGA4Data(days),
       isDemo: true,
