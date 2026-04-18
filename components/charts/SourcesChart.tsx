@@ -12,7 +12,13 @@ import type { GA4Summary } from "@/types/seo";
 
 const COLORS = ["#16a34a", "#2563eb", "#d97706", "#7c3aed", "#db2777"];
 
-export function SourcesChart({ data }: { data: GA4Summary | null }) {
+export function SourcesChart({
+  data,
+  title = "Каналы (GA4)",
+}: {
+  data: GA4Summary | null;
+  title?: string;
+}) {
   const chartData =
     data?.channels?.map((c) => ({
       name: c.name,
@@ -22,7 +28,7 @@ export function SourcesChart({ data }: { data: GA4Summary | null }) {
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
       <h3 className="mb-4 text-sm font-medium text-gray-900 dark:text-gray-100">
-        Каналы (GA4)
+        {title}
       </h3>
       <div className="h-[280px] w-full">
         {chartData.length === 0 ? (

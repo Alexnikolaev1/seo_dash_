@@ -1,4 +1,9 @@
 import type { GSCRow, GA4Summary } from "@/types/seo";
+import type {
+  YandexHistoryPoint,
+  YandexMetricaSummary,
+  YandexWebmasterQueryRow,
+} from "@/types/yandex";
 
 export function getDemoGSCData(days: number): GSCRow[] {
   const queries = [
@@ -41,5 +46,62 @@ export function getDemoAhrefsData() {
     backlinks: 12840,
     organicTraffic: 28400,
     keywords: 3920,
+  };
+}
+
+export function getDemoYandexWebmasterQueries(
+  days: number
+): YandexWebmasterQueryRow[] {
+  const queries = [
+    "доставка цветов москва",
+    "интернет магазин подарков",
+    "купить букет роз",
+    "оформление свадьбы цена",
+    "курьерская доставка сегодня",
+    "подарочный сертификат онлайн",
+    "цветы с доставкой спб",
+    "оформление зала недорого",
+  ];
+  const factor = days / 28;
+  return queries.map((queryText, i) => ({
+    queryId: `demo-${i}`,
+    queryText,
+    shows: Math.round((12000 / (i + 1)) * factor),
+    clicks: Math.round((900 / (i + 1)) * factor),
+    avgShowPosition: parseFloat((4 + i * 1.2).toFixed(1)),
+  }));
+}
+
+export function getDemoYandexHistory(days: number): YandexHistoryPoint[] {
+  const out: YandexHistoryPoint[] = [];
+  const end = new Date();
+  for (let d = days - 1; d >= 0; d--) {
+    const dt = new Date(end);
+    dt.setDate(dt.getDate() - d);
+    const label = dt.toISOString().slice(0, 10);
+    const wave = 0.88 + 0.12 * Math.sin((d / 7) * Math.PI * 2);
+    out.push({
+      date: label,
+      shows: Math.round(4200 * wave * (0.9 + d / (days * 3))),
+      clicks: Math.round(310 * wave * (0.95 + d / (days * 4))),
+    });
+  }
+  return out;
+}
+
+export function getDemoYandexMetrica(days: number): YandexMetricaSummary {
+  const factor = days / 28;
+  return {
+    sessions: Math.round(28000 * factor),
+    users: Math.round(17500 * factor),
+    pageviews: Math.round(72000 * factor),
+    avgDuration: 164,
+    channels: [
+      { name: "Переходы из поисковых систем", sessions: Math.round(15200 * factor) },
+      { name: "Прямые заходы", sessions: Math.round(6100 * factor) },
+      { name: "Переходы по рекламе", sessions: Math.round(3400 * factor) },
+      { name: "Внутренние переходы", sessions: Math.round(2100 * factor) },
+      { name: "Переходы из социальных сетей", sessions: Math.round(1200 * factor) },
+    ],
   };
 }
