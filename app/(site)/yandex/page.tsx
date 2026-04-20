@@ -43,6 +43,8 @@ function YandexPageInner() {
       yandex_denied: "Доступ в Яндекс OAuth отклонён.",
       yandex_state: "Ошибка проверки state (CSRF). Попробуйте снова.",
       yandex_token: "Не удалось обменять код на токен.",
+      yandex_invalid_scope:
+        "Неверный scope OAuth. В Vercel удалите переменную YANDEX_OAUTH_SCOPE или оставьте пустой — тогда используются права из кабинета приложения Яндекса (Метрика + Вебмастер). Если задаёте scope вручную, перечислите через пробел только разрешённые для приложения идентификаторы.",
     };
     return {
       tone: "error" as const,

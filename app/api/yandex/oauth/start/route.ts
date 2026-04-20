@@ -18,16 +18,22 @@ export async function GET(req: NextRequest) {
 
   const state = randomBytes(24).toString("hex");
   const redirectUri = `${base}/api/yandex/oauth/callback`;
-  const scope =
-    process.env.YANDEX_OAUTH_SCOPE?.trim() ||
-    "metrika:read";
+  /**
+   * Не подставляем scope по умолчанию: при «Метрика + Вебмастер» в кабинете приложения
+   * запрос только metrika:read даёт invalid_scope. Без параметра scope Яндекс
+   * использует все права, выданные приложению при регистрации.
+   * Явный список — только через YANDEX_OAUTH_SCOPE (через пробел).
+   */
+  const scope = process.env.YANDEX_OAUTH_SCOPE?.trim();
 
   const url = new URL(YANDEX_OAUTH_AUTHORIZE);
   url.searchParams.set("response_type", "code");
   url.searchParams.set("client_id", clientId);
   url.searchParams.set("redirect_uri", redirectUri);
   url.searchParams.set("state", state);
-  url.searchParams.set("scope", scope);
+  if (scope) {
+    url.searchParams.set("scope", scope);
+  }
 
   const res = NextResponse.redirect(url.toString());
   res.cookies.set(YANDEX_COOKIE_STATE, state, {
