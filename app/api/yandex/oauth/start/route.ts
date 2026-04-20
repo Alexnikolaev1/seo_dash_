@@ -3,17 +3,15 @@ import {
   YANDEX_COOKIE_STATE,
   YANDEX_OAUTH_AUTHORIZE,
 } from "@/lib/yandex/constants";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const clientId = process.env.YANDEX_CLIENT_ID?.trim();
-  const base = (process.env.NEXTAUTH_URL ?? "").replace(/\/$/, "");
-  if (!clientId || !base) {
+  /** Должен совпадать с Callback URL в кабинете Яндекса — берём хост из запроса. */
+  const base = req.nextUrl.origin;
+  if (!clientId) {
     return NextResponse.json(
-      {
-        error:
-          "Задайте YANDEX_CLIENT_ID и NEXTAUTH_URL (базовый URL приложения для redirect_uri).",
-      },
+      { error: "Задайте YANDEX_CLIENT_ID." },
       { status: 500 }
     );
   }

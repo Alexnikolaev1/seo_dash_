@@ -16,14 +16,15 @@ const COOKIE_BASE = {
 };
 
 export async function GET(req: NextRequest) {
-  const base = (process.env.NEXTAUTH_URL ?? "").replace(/\/$/, "");
   const clientId = process.env.YANDEX_CLIENT_ID?.trim();
   const clientSecret = process.env.YANDEX_CLIENT_SECRET?.trim();
+  /** Тот же host, что в шаге /oauth/start — иначе обмен кода на токен падает с 400. */
+  const origin = req.nextUrl.origin;
 
   const redirectYandex = (q: string) =>
-    NextResponse.redirect(new URL(`/yandex?${q}`, base || req.nextUrl.origin));
+    NextResponse.redirect(new URL(`/yandex?${q}`, origin));
 
-  if (!base || !clientId || !clientSecret) {
+  if (!clientId || !clientSecret) {
     return redirectYandex("error=yandex_config");
   }
 
@@ -41,7 +42,7 @@ export async function GET(req: NextRequest) {
     return redirectYandex("error=yandex_state");
   }
 
-  const redirectUri = `${base}/api/yandex/oauth/callback`;
+  const redirectUri = `${origin}/api/yandex/oauth/callback`;
   const body = new URLSearchParams({
     grant_type: "authorization_code",
     code,
