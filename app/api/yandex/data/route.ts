@@ -26,6 +26,7 @@ import {
 import type {
   YandexDashboardResponse,
   YandexHistoryPoint,
+  YandexMetricaSummary,
   YandexWebmasterQueryRow,
 } from "@/types/yandex";
 import { cookies } from "next/headers";
@@ -145,12 +146,17 @@ export async function GET(req: NextRequest) {
   }
 
   let hosts: WmHost[] = [];
-  let counters: Awaited<ReturnType<typeof fetchMetricaCounters>> = [];
+  let counters: Awaited<ReturnType<typeof fetchMetricaCounters>>["counters"] =
+    [];
+  let countersHttpStatus = 200;
   try {
-    [hosts, counters] = await Promise.all([
+    const [h, mc] = await Promise.all([
       fetchWebmasterHosts(workingToken, userId),
       fetchMetricaCounters(workingToken),
     ]);
+    hosts = h;
+    counters = mc.counters;
+    countersHttpStatus = mc.status;
   } catch {
     const q = getDemoYandexWebmasterQueries(days);
     const res = NextResponse.json({
@@ -186,8 +192,23 @@ export async function GET(req: NextRequest) {
   const warnings: string[] = [];
   let queries: YandexWebmasterQueryRow[] = [];
   let history: YandexHistoryPoint[] = [];
-  let webmasterLive = false;
-  let metricaLive = false;
+  /** Подставлены синтетические данные Вебмастера из-за ошибки / отсутствия сайта */
+  let webmasterDemoFallback = false;
+
+  if (countersHttpStatus >= 400) {
+    warnings.push(
+      `Метрика: не удалось получить список счётчиков (код ${countersHttpStatus}). Проверьте права приложения на доступ к API Метрики и что аккаунт тот же, что у счётчика. Можно задать номер счётчика вручную (переменная YANDEX_METRICA_COUNTER_ID или поле на странице).`
+    );
+  } else if (
+    counters.length === 0 &&
+    !envCounter &&
+    counterParam == null &&
+    resolvedCounterId == null
+  ) {
+    warnings.push(
+      "Метрика: список счётчиков пуст. Войдите OAuth под тем же Яндекс-аккаунтом, где создан счётчик, либо укажите номер счётчика вручную (поле ниже на странице или YANDEX_METRICA_COUNTER_ID в Vercel). Номер: Метрика → Настройки (шестерёнка) → «Номер счётчика»."
+    );
+  }
 
   if (host) {
     try {
@@ -210,22 +231,21 @@ export async function GET(req: NextRequest) {
       ]);
       queries = pop;
       history = hist;
-      webmasterLive = true;
       if (!pop.length) {
         warnings.push(
-          "Вебмастер: за период нет популярных запросов (или сайт без данных)."
+          "Вебмастер: за период нет популярных запросов. Для новых или низкотрафиковых сайтов это нормально; данные в отчётах Вебмастера появляются с задержкой. Проверьте сайт и период в самом Вебмастере."
         );
       }
       if (!hist.length && pop.length) {
         warnings.push(
-          "Вебмастер: нет дневной истории «все запросы» за период (возможна задержка загрузки)."
+          "Вебмастер: нет дневной истории «все запросы» за период (данные могут накапливаться с задержкой)."
         );
       }
     } catch {
       warnings.push("Ошибка запроса к API Вебмастера.");
       queries = getDemoYandexWebmasterQueries(days);
       history = getDemoYandexHistory(days);
-      webmasterLive = false;
+      webmasterDemoFallback = true;
     }
   } else {
     warnings.push(
@@ -233,10 +253,11 @@ export async function GET(req: NextRequest) {
     );
     queries = getDemoYandexWebmasterQueries(days);
     history = getDemoYandexHistory(days);
-    webmasterLive = false;
+    webmasterDemoFallback = true;
   }
 
-  let metrica = getDemoYandexMetrica(days);
+  /** Без счётчика не подставляем демо-цифры — только null */
+  let metrica: YandexMetricaSummary | null = null;
   if (resolvedCounterId != null) {
     try {
       const m = await fetchMetricaSummary(
@@ -247,7 +268,6 @@ export async function GET(req: NextRequest) {
       );
       if (m) {
         metrica = m;
-        metricaLive = true;
         if (
           m.sessions === 0 &&
           m.channels.every((c) => c.sessions === 0)
@@ -262,14 +282,11 @@ export async function GET(req: NextRequest) {
     } catch {
       warnings.push("Ошибка запроса к API Метрики.");
     }
-  } else {
-    warnings.push(
-      "Счётчик Метрики не выбран: привяжите счётчик в Яндекс OAuth или задайте YANDEX_METRICA_COUNTER_ID."
-    );
   }
 
   const totals = aggregateWebmasterQueries(queries);
-  const isDemo = !(webmasterLive && metricaLive);
+  /** Демо-бейдж только если реально отдаём синтетику или нет токена (ранние return выше) */
+  const isDemo = webmasterDemoFallback;
 
   const payload: YandexDashboardResponse = {
     isDemo,

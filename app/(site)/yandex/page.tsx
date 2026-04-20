@@ -55,6 +55,8 @@ function YandexPageInner() {
   const [period, setPeriod] = useState(28);
   const [hostId, setHostId] = useState<string | null>(null);
   const [counterId, setCounterId] = useState<number | null>(null);
+  /** Если API не вернул список счётчиков — ввод номера вручную */
+  const [counterDraft, setCounterDraft] = useState("");
 
   const { data, loading, error, reload } = useYandexDashboard(
     period,
@@ -159,22 +161,56 @@ function YandexPageInner() {
           </label>
           <label className="flex flex-col gap-1 text-xs text-gray-600 dark:text-gray-400">
             Счётчик (Метрика)
-            <select
-              className="min-w-[220px] rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-900"
-              value={counterValue === "" ? "" : String(counterValue)}
-              onChange={(e) => {
-                const v = e.target.value;
-                setCounterId(v ? Number(v) : null);
-              }}
-            >
-              {data.meta.availableCounters.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                  {c.site ? ` — ${c.site}` : ""}
-                </option>
-              ))}
-            </select>
+            {data.meta.availableCounters.length > 0 ? (
+              <select
+                className="min-w-[220px] rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-900"
+                value={counterValue === "" ? "" : String(counterValue)}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setCounterId(v ? Number(v) : null);
+                }}
+              >
+                {data.meta.availableCounters.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                    {c.site ? ` — ${c.site}` : ""}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <span className="text-sm text-amber-800 dark:text-amber-200">
+                Список из API пуст — укажите номер ниже или в Vercel
+                (YANDEX_METRICA_COUNTER_ID).
+              </span>
+            )}
           </label>
+        </div>
+      ) : null}
+
+      {data?.meta.yandexConnected && data.meta.availableCounters.length === 0 ? (
+        <div className="flex flex-wrap items-end gap-2 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-gray-900/50">
+          <label className="flex flex-col gap-1 text-xs text-gray-600 dark:text-gray-400">
+            Номер счётчика Метрики
+            <input
+              type="number"
+              min={1}
+              inputMode="numeric"
+              placeholder="из настроек счётчика"
+              className="w-48 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-900"
+              value={counterDraft}
+              onChange={(e) => setCounterDraft(e.target.value)}
+            />
+          </label>
+          <button
+            type="button"
+            className="rounded-lg bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700"
+            onClick={() => {
+              const n = Number(counterDraft);
+              if (Number.isFinite(n) && n > 0) setCounterId(n);
+            }}
+          >
+            Загрузить
+          </button>
         </div>
       ) : null}
 

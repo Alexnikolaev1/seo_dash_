@@ -22,15 +22,22 @@ export interface MetricaCounterRow {
   site?: string;
 }
 
-export async function fetchMetricaCounters(
-  token: string
-): Promise<MetricaCounterRow[]> {
+export async function fetchMetricaCounters(token: string): Promise<{
+  counters: MetricaCounterRow[];
+  /** HTTP-код ответа Management API (список счётчиков) */
+  status: number;
+}> {
   const url = new URL(METRICA_MANAGEMENT_API);
   url.searchParams.set("per_page", "1000");
   const res = await fetch(url.toString(), { headers: MH(token) });
-  if (!res.ok) return [];
+  if (!res.ok) {
+    return { counters: [], status: res.status };
+  }
   const data = await readJson<{ counters?: MetricaCounterRow[] }>(res);
-  return Array.isArray(data.counters) ? data.counters : [];
+  return {
+    counters: Array.isArray(data.counters) ? data.counters : [],
+    status: res.status,
+  };
 }
 
 function dimensionLabel(dim: unknown): string {
