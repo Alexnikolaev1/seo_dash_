@@ -7,7 +7,9 @@ import { YandexPositionChart } from "@/components/charts/YandexPositionChart";
 import { SourcesChart } from "@/components/charts/SourcesChart";
 import { DemoBadge } from "@/components/ui/DemoBadge";
 import { YandexKpiGrid } from "@/components/widgets/YandexKpiGrid";
+import { SeoAiAdvisor } from "@/components/widgets/SeoAiAdvisor";
 import { useYandexDashboard } from "@/lib/hooks/useYandexDashboard";
+import { buildYandexAdvisorPayload } from "@/lib/seo-advisor-payload";
 import type { GA4Summary } from "@/types/seo";
 
 function metricaToGa4Shape(m: {
@@ -241,6 +243,13 @@ function YandexPageInner() {
             <YandexKpiGrid
               wm={data.webmaster.totals}
               metrica={data.metrica}
+            />
+            <SeoAiAdvisor
+              title="SEO-советник по Яндексу (Gemini)"
+              subtitle="Анализ Вебмастера + Метрики и практические шаги по оптимизации в Яндексе."
+              ready={Boolean(data.webmaster.queries?.length)}
+              emptyMessage="Нет данных Вебмастера. Подключите Яндекс ID и выберите сайт."
+              buildPayload={() => buildYandexAdvisorPayload(period, data)}
             />
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <YandexTrendChart data={data.webmaster.history} />

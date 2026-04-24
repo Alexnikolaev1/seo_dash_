@@ -1,25 +1,40 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextRequest, NextResponse } from "next/server";
-import type { SeoAdvisorPayload } from "@/lib/seo-advisor-payload";
+import type {
+  SeoAdvisorPayload,
+  SeoAdvisorSource,
+} from "@/lib/seo-advisor-payload";
 
-const SYSTEM = `Ты опытный SEO-консультант. Тебе передают JSON со статистикой дашборда (Google Search Console, GA4, демо-режим или реальные данные).
-
-Правила:
+const BASE_RULES = `Правила:
 - Отвечай на русском языке.
-- Опирайся на переданные цифры и запросы; не выдумывай метрики, которых нет в JSON.
-- Если isDemo === true, явно скажи, что это демо-данные и советы условные — для точного разбора нужно подключить реальные GSC/GA4.
-- Дай проверенные, практичные шаги (технический SEO, контент, сниппеты, внутренняя перелинковка, Core Web Vitals, структура URL) — без манипулятивных «серых» методов.
-- Учитывай ruleBasedHints как подсказки системы, но дополни их своим анализом.
+- Опирайся только на цифры и запросы из JSON; не выдумывай метрик.
+- Если isDemo === true, честно скажи, что это демо-данные и выводы условные — для точного разбора нужно подключить реальные счётчики.
+- Давай только «белые» проверенные методы: технический SEO, E-E-A-T-контент, сниппеты, внутренняя перелинковка, Core Web Vitals / скорость, UX, структура URL, семантическая разметка.
+- Учитывай ruleBasedHints как подсказки системы и дополняй их своим анализом.
 - Структура ответа (используй заголовки ## и маркированные списки):
   ## Краткий вывод
   ## Приоритеты (что сделать в первую очередь)
   ## Конкретные шаги на 2–4 недели
   ## Что отслеживать дальше`;
 
+const SYSTEM_BY_SOURCE: Record<SeoAdvisorSource, string> = {
+  google: `Ты опытный SEO-консультант по Google. Тебе передают JSON со статистикой дашборда (Google Search Console + GA4). Поле source === "google".
+${BASE_RULES}
+- searchAggregate и topQueries — данные Google Search Console (impressions = показы, position = средняя позиция в Google).
+- analytics — GA4 (сессии, пользователи, каналы).`,
+  yandex: `Ты опытный SEO-консультант по Яндексу. Тебе передают JSON со статистикой дашборда (Яндекс.Вебмастер + Яндекс.Метрика). Поле source === "yandex".
+${BASE_RULES}
+- searchAggregate и topQueries — данные Яндекс.Вебмастера (impressions = показы, position = средняя позиция в Яндексе; CTR посчитан из clicks/impressions).
+- analytics — Яндекс.Метрика в совместимом виде (сессии, пользователи, каналы).
+- Учитывай специфику Яндекса: ИКС, поведенческие факторы (глубина, время на сайте, отказы из Метрики), коммерческие факторы, региональность, Я.Вебмастер «Диагностика» и турбо-страницы — но не выдумывай того, чего нет в данных.`,
+};
+
 function isPayload(x: unknown): x is SeoAdvisorPayload {
   if (typeof x !== "object" || x === null) return false;
   const o = x as Record<string, unknown>;
+  const sourceOk = o.source === "google" || o.source === "yandex";
   return (
+    sourceOk &&
     typeof o.periodDays === "number" &&
     typeof o.isDemo === "boolean" &&
     Array.isArray(o.topQueries) &&
@@ -69,7 +84,7 @@ export async function POST(req: NextRequest) {
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
       model: modelName,
-      systemInstruction: SYSTEM,
+      systemInstruction: SYSTEM_BY_SOURCE[payload.source],
     });
 
     const userText = `Проанализируй данные и дай рекомендации по SEO:\n\n${JSON.stringify(payload, null, 2)}`;

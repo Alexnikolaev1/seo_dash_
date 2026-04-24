@@ -1,9 +1,7 @@
 "use client";
 
 import { useCallback, useState, type ReactNode } from "react";
-import type { GSCRow, GA4Summary } from "@/types/seo";
-import type { Recommendation } from "@/lib/recommendations";
-import { buildSeoAdvisorPayload } from "@/lib/seo-advisor-payload";
+import type { SeoAdvisorPayload } from "@/lib/seo-advisor-payload";
 
 function renderSimpleMarkdown(text: string) {
   const lines = text.split("\n");
@@ -62,17 +60,18 @@ function renderSimpleMarkdown(text: string) {
 }
 
 export function SeoAiAdvisor({
-  periodDays,
-  isDemo,
-  gscData,
-  ga4Data,
-  recommendations,
+  title = "SEO-советник (Gemini)",
+  subtitle,
+  buildPayload,
+  ready,
+  emptyMessage = "Нет данных для анализа. Дождитесь загрузки или проверьте подключение.",
 }: {
-  periodDays: number;
-  isDemo: boolean;
-  gscData: GSCRow[] | null;
-  ga4Data: GA4Summary | null;
-  recommendations: Recommendation[];
+  title?: string;
+  subtitle?: string;
+  buildPayload: () => SeoAdvisorPayload;
+  /** Готовы ли данные для отправки */
+  ready: boolean;
+  emptyMessage?: string;
 }) {
   const [text, setText] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -83,13 +82,7 @@ export function SeoAiAdvisor({
     setError(null);
     setText(null);
     try {
-      const payload = buildSeoAdvisorPayload(
-        periodDays,
-        isDemo,
-        gscData,
-        ga4Data,
-        recommendations
-      );
+      const payload = buildPayload();
       const res = await fetch("/api/seo-advisor", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -108,18 +101,19 @@ export function SeoAiAdvisor({
     } finally {
       setLoading(false);
     }
-  }, [periodDays, isDemo, gscData, ga4Data, recommendations]);
+  }, [buildPayload]);
 
   return (
     <section className="rounded-xl border border-violet-200/80 bg-gradient-to-br from-violet-50/90 to-white p-4 shadow-sm dark:border-violet-900/50 dark:from-violet-950/40 dark:to-gray-900">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-sm font-medium text-gray-900 dark:text-gray-100">
-            SEO-советник (Gemini)
+            {title}
           </h2>
           <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">
-            Анализ текущих метрик дашборда и практические шаги. Нужен бесплатный
-            ключ API — см.{" "}
+            {subtitle ??
+              "Анализ текущих метрик дашборда и практические шаги."}{" "}
+            Нужен бесплатный ключ API — см.{" "}
             <a
               href="https://aistudio.google.com/apikey"
               target="_blank"
@@ -142,17 +136,16 @@ export function SeoAiAdvisor({
         <button
           type="button"
           onClick={() => void run()}
-          disabled={loading || !gscData?.length}
+          disabled={loading || !ready}
           className="shrink-0 rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-violet-500 dark:hover:bg-violet-400"
         >
           {loading ? "Анализ…" : "Получить анализ"}
         </button>
       </div>
 
-      {!gscData?.length && !loading && (
+      {!ready && !loading && (
         <p className="mt-3 text-xs text-amber-800 dark:text-amber-200">
-          Нет данных GSC для анализа. Дождитесь загрузки или проверьте
-          подключение.
+          {emptyMessage}
         </p>
       )}
 
