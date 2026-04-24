@@ -65,4 +65,6 @@ export interface YandexDashboardResponse {
   meta: YandexDashboardMeta;
   isDemo: boolean;
   warning?: string | null;
+  /** Нужна повторная OAuth-авторизация (например, 401/403 — у токена нет прав Метрики) */
+  needsReauth?: boolean;
 }

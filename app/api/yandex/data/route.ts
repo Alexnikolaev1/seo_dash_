@@ -149,6 +149,7 @@ export async function GET(req: NextRequest) {
   let counters: Awaited<ReturnType<typeof fetchMetricaCounters>>["counters"] =
     [];
   let countersHttpStatus = 200;
+  let needsReauth = false;
   try {
     const [h, mc] = await Promise.all([
       fetchWebmasterHosts(workingToken, userId),
@@ -195,7 +196,12 @@ export async function GET(req: NextRequest) {
   /** Подставлены синтетические данные Вебмастера из-за ошибки / отсутствия сайта */
   let webmasterDemoFallback = false;
 
-  if (countersHttpStatus >= 400) {
+  if (countersHttpStatus === 401 || countersHttpStatus === 403) {
+    needsReauth = true;
+    warnings.push(
+      `Метрика: у токена нет прав на API Метрики (код ${countersHttpStatus}). В кабинете OAuth-приложения (oauth.yandex.ru/client) добавьте право «Яндекс Метрика» → «Получение статистики, чтение параметров» (metrika:read), затем нажмите «Переподключить Яндекс». Аккаунт должен совпадать с владельцем счётчика.`
+    );
+  } else if (countersHttpStatus >= 400) {
     warnings.push(
       `Метрика: не удалось получить список счётчиков (код ${countersHttpStatus}). Проверьте права приложения на доступ к API Метрики и что аккаунт тот же, что у счётчика. Можно задать номер счётчика вручную (переменная YANDEX_METRICA_COUNTER_ID или поле на странице).`
     );
@@ -266,18 +272,29 @@ export async function GET(req: NextRequest) {
         dateFrom,
         dateTo
       );
-      if (m) {
-        metrica = m;
+      if (m.summary) {
+        metrica = m.summary;
         if (
-          m.sessions === 0 &&
-          m.channels.every((c) => c.sessions === 0)
+          m.summary.sessions === 0 &&
+          m.summary.channels.every((c) => c.sessions === 0)
         ) {
           warnings.push(
             "Метрика: за период нет визитов или данные ещё не собраны."
           );
         }
+      } else if (m.status === 401 || m.status === 403) {
+        needsReauth = true;
+        warnings.push(
+          `Метрика: нет прав на счётчик ${resolvedCounterId} (код ${m.status}${m.errorMessage ? `: ${m.errorMessage}` : ""}). В кабинете OAuth-приложения добавьте право «Яндекс Метрика → metrika:read» и переподключите Яндекс. Аккаунт Яндекса должен быть владельцем счётчика или иметь к нему доступ.`
+        );
+      } else if (m.status === 404) {
+        warnings.push(
+          `Метрика: счётчик ${resolvedCounterId} не найден (код 404). Проверьте номер в Метрике (Настройки → «Номер счётчика»).`
+        );
       } else {
-        warnings.push("Метрика: пустой ответ API (проверьте id счётчика и доступ).");
+        warnings.push(
+          `Метрика: ответ API некорректный (код ${m.status}${m.errorMessage ? `: ${m.errorMessage}` : ""}). Проверьте id счётчика и доступ.`
+        );
       }
     } catch {
       warnings.push("Ошибка запроса к API Метрики.");
@@ -291,6 +308,7 @@ export async function GET(req: NextRequest) {
   const payload: YandexDashboardResponse = {
     isDemo,
     warning: warnings.length ? warnings.join(" ") : null,
+    needsReauth,
     webmaster: {
       queries,
       history,

@@ -56,12 +56,42 @@ interface StatDataResponse {
   totals?: number[];
 }
 
+export interface MetricaSummaryResult {
+  summary: YandexMetricaSummary | null;
+  status: number;
+  errorMessage: string | null;
+}
+
+async function readErrorMessage(res: Response): Promise<string | null> {
+  try {
+    const txt = await res.text();
+    if (!txt) return null;
+    try {
+      const j = JSON.parse(txt) as {
+        message?: string;
+        error_message?: string;
+        errors?: Array<{ message?: string }>;
+      };
+      return (
+        j.message ||
+        j.error_message ||
+        j.errors?.[0]?.message ||
+        txt.slice(0, 200)
+      );
+    } catch {
+      return txt.slice(0, 200);
+    }
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchMetricaSummary(
   token: string,
   counterId: number,
   date1: string,
   date2: string
-): Promise<YandexMetricaSummary | null> {
+): Promise<MetricaSummaryResult> {
   const totalsUrl = new URL(METRICA_STAT_API);
   totalsUrl.searchParams.set("id", String(counterId));
   totalsUrl.searchParams.set("date1", date1);
@@ -87,7 +117,10 @@ export async function fetchMetricaSummary(
     fetch(channelsUrl.toString(), { headers: MH(token) }),
   ]);
 
-  if (!totRes.ok) return null;
+  if (!totRes.ok) {
+    const errorMessage = await readErrorMessage(totRes);
+    return { summary: null, status: totRes.status, errorMessage };
+  }
 
   const totJson = await readJson<StatDataResponse>(totRes);
   const totals =
@@ -112,10 +145,14 @@ export async function fetchMetricaSummary(
   }
 
   return {
-    sessions,
-    users,
-    pageviews,
-    avgDuration,
-    channels,
+    summary: {
+      sessions,
+      users,
+      pageviews,
+      avgDuration,
+      channels,
+    },
+    status: totRes.status,
+    errorMessage: null,
   };
 }
