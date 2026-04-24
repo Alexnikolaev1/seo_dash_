@@ -140,6 +140,19 @@ function YandexPageInner() {
           >
             Выйти из Яндекса
           </button>
+          {data.meta.yandexLogin && (
+            <span className="text-xs text-gray-600 dark:text-gray-400">
+              Аккаунт:{" "}
+              <span className="font-medium text-gray-900 dark:text-gray-100">
+                {data.meta.yandexLogin}
+              </span>
+              {data.meta.yandexDisplayName &&
+              data.meta.yandexDisplayName !== data.meta.yandexLogin
+                ? ` (${data.meta.yandexDisplayName})`
+                : ""}{" "}
+              — этот аккаунт должен быть владельцем счётчика Метрики.
+            </span>
+          )}
         </div>
       )}
 

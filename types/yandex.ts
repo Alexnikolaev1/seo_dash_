@@ -53,6 +53,9 @@ export interface YandexDashboardMeta {
   availableHosts: YandexHostOption[];
   availableCounters: YandexCounterOption[];
   yandexConnected: boolean;
+  /** Логин Яндекса, под которым выдан текущий OAuth-токен */
+  yandexLogin: string | null;
+  yandexDisplayName: string | null;
 }
 
 export interface YandexDashboardResponse {

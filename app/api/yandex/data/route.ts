@@ -15,6 +15,7 @@ import {
 } from "@/lib/yandex/metrica";
 import { resolveYandexAccessToken } from "@/lib/yandex/oauth-token";
 import { refreshYandexAccessToken } from "@/lib/yandex/refresh";
+import { fetchYandexUserInfo } from "@/lib/yandex/userinfo";
 import {
   fetchAllQueriesHistory,
   fetchPopularQueries,
@@ -114,11 +115,15 @@ export async function GET(req: NextRequest) {
         availableHosts: [],
         availableCounters: [],
         yandexConnected: hasCredentials,
+        yandexLogin: null,
+        yandexDisplayName: null,
       },
     } satisfies YandexDashboardResponse);
     attachCookies(res);
     return res;
   }
+
+  const yandexUser = await fetchYandexUserInfo(workingToken);
 
   const userId = await fetchWebmasterUserId(workingToken);
   if (userId == null) {
@@ -139,6 +144,8 @@ export async function GET(req: NextRequest) {
         availableHosts: [],
         availableCounters: [],
         yandexConnected: true,
+        yandexLogin: yandexUser?.login ?? null,
+        yandexDisplayName: yandexUser?.displayName ?? null,
       },
     } satisfies YandexDashboardResponse);
     attachCookies(res);
@@ -176,6 +183,8 @@ export async function GET(req: NextRequest) {
         availableHosts: [],
         availableCounters: [],
         yandexConnected: true,
+        yandexLogin: yandexUser?.login ?? null,
+        yandexDisplayName: yandexUser?.displayName ?? null,
       },
     } satisfies YandexDashboardResponse);
     attachCookies(res);
@@ -329,6 +338,8 @@ export async function GET(req: NextRequest) {
         site: c.site ?? "",
       })),
       yandexConnected: true,
+      yandexLogin: yandexUser?.login ?? null,
+      yandexDisplayName: yandexUser?.displayName ?? null,
     },
   };
 

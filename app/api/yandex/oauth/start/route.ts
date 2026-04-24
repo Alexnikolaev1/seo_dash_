@@ -31,6 +31,9 @@ export async function GET(req: NextRequest) {
   url.searchParams.set("client_id", clientId);
   url.searchParams.set("redirect_uri", redirectUri);
   url.searchParams.set("state", state);
+  /** Всегда показывать окно согласия — иначе Яндекс молча переиспользует старый токен
+   * без новых прав (например, без metrika:read, если они были добавлены позже). */
+  url.searchParams.set("force_confirm", "yes");
   if (scope) {
     url.searchParams.set("scope", scope);
   }
