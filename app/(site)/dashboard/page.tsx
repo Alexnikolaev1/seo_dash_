@@ -6,6 +6,7 @@ import { TrendChart } from "@/components/charts/TrendChart";
 import { SourcesChart } from "@/components/charts/SourcesChart";
 import { PositionChart } from "@/components/charts/PositionChart";
 import { RecommendationsList } from "@/components/widgets/RecommendationsList";
+import { SeoAiAdvisor } from "@/components/widgets/SeoAiAdvisor";
 import { DemoBadge } from "@/components/ui/DemoBadge";
 import { generateRecommendations } from "@/lib/recommendations";
 import { useSeoDashboard } from "@/lib/hooks/useSeoDashboard";
@@ -59,6 +60,13 @@ export default function DashboardPage() {
       ) : (
         <>
           <KPIGrid gscData={gscData} ga4Data={ga4Data} />
+          <SeoAiAdvisor
+            periodDays={period}
+            isDemo={isDemo}
+            gscData={gscData}
+            ga4Data={ga4Data}
+            recommendations={recommendations}
+          />
           <RecommendationsList recommendations={recommendations} />
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <TrendChart data={gscData} days={period} />
