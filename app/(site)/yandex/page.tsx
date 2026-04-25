@@ -236,15 +236,44 @@ function YandexPageInner() {
       )}
 
       {data?.warning && (
-        <div className="flex flex-col gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-100 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-100">
           <p>{data.warning}</p>
           {data.needsReauth && (
-            <a
-              href="/api/yandex/oauth/start"
-              className="inline-flex shrink-0 items-center justify-center rounded-lg bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700"
-            >
-              Переподключить Яндекс
-            </a>
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              {data.meta.yandexLogin && (
+                <span className="text-xs">
+                  Сейчас вы вошли как{" "}
+                  <span className="font-semibold">
+                    {data.meta.yandexLogin}
+                  </span>
+                  . Откройте{" "}
+                  <a
+                    href="https://metrika.yandex.ru/list"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline underline-offset-2"
+                  >
+                    metrika.yandex.ru/list
+                  </a>{" "}
+                  и сверьте: в правом верхнем углу должен быть тот же логин и
+                  столбец «Владелец» у нужного счётчика — этот же логин.
+                </span>
+              )}
+              <a
+                href="/api/yandex/oauth/start"
+                className="inline-flex shrink-0 items-center justify-center rounded-lg bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700"
+              >
+                Переподключить Яндекс
+              </a>
+              <a
+                href="/api/yandex/diagnose"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex shrink-0 items-center justify-center rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-medium text-amber-900 hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100 dark:hover:bg-amber-900"
+              >
+                Открыть диагностику
+              </a>
+            </div>
           )}
         </div>
       )}
