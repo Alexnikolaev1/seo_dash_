@@ -8,7 +8,7 @@ import type {
   YandexWebmasterTotals,
 } from "@/types/yandex";
 
-export type SeoAdvisorSource = "google" | "yandex";
+export type SeoAdvisorSource = "google" | "yandex" | "combined";
 
 export interface SeoAdvisorAggregate {
   clicks: number;
@@ -33,6 +33,9 @@ export interface SeoAdvisorPayload {
   analytics: GA4Summary | null;
   topQueries: SeoAdvisorQuery[];
   ruleBasedHints: Array<{ title: string; description: string }>;
+  /** Заполняется только для source === "combined" */
+  google?: Omit<SeoAdvisorPayload, "source" | "periodDays" | "google" | "yandex"> | null;
+  yandex?: Omit<SeoAdvisorPayload, "source" | "periodDays" | "google" | "yandex"> | null;
 }
 
 export function buildSeoAdvisorPayload(
@@ -125,5 +128,54 @@ export function buildYandexAdvisorPayload(
       ? topYandexQueries(data.webmaster.queries)
       : [],
     ruleBasedHints: [],
+  };
+}
+
+function stripWrapper(p: SeoAdvisorPayload) {
+  return {
+    isDemo: p.isDemo,
+    searchAggregate: p.searchAggregate,
+    analytics: p.analytics,
+    topQueries: p.topQueries,
+    ruleBasedHints: p.ruleBasedHints,
+  };
+}
+
+export interface CombinedInputs {
+  periodDays: number;
+  google: {
+    isDemo: boolean;
+    gscData: GSCRow[] | null;
+    ga4Data: GA4Summary | null;
+    recommendations: Recommendation[];
+  } | null;
+  yandex: YandexDashboardResponse | null;
+}
+
+export function buildCombinedAdvisorPayload({
+  periodDays,
+  google,
+  yandex,
+}: CombinedInputs): SeoAdvisorPayload {
+  const g = google
+    ? buildSeoAdvisorPayload(
+        periodDays,
+        google.isDemo,
+        google.gscData,
+        google.ga4Data,
+        google.recommendations
+      )
+    : null;
+  const y = yandex ? buildYandexAdvisorPayload(periodDays, yandex) : null;
+  return {
+    source: "combined",
+    periodDays,
+    isDemo: Boolean(g?.isDemo || y?.isDemo),
+    searchAggregate: null,
+    analytics: null,
+    topQueries: [],
+    ruleBasedHints: g ? g.ruleBasedHints : [],
+    google: g ? stripWrapper(g) : null,
+    yandex: y ? stripWrapper(y) : null,
   };
 }

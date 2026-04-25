@@ -11,6 +11,7 @@ import { ReportButton } from "@/components/widgets/ReportButton";
 const nav = [
   { href: "/dashboard", label: "Дашборд" },
   { href: "/yandex", label: "Яндекс" },
+  { href: "/insights", label: "Сводный план" },
   { href: "/keywords", label: "Ключевые слова" },
 ];
 
