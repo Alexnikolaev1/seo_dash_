@@ -296,9 +296,11 @@ function YandexPageInner() {
             />
             <SeoAiAdvisor
               title="SEO-советник по Яндексу (Gemini)"
-              subtitle="Анализ Вебмастера + Метрики и практические шаги по оптимизации в Яндексе."
-              ready={Boolean(data.webmaster.queries?.length)}
-              emptyMessage="Нет данных Вебмастера. Подключите Яндекс ID и выберите сайт."
+              subtitle="Анализ Вебмастера и/или Метрики и практические шаги по оптимизации в Яндексе."
+              ready={Boolean(
+                data.webmaster.queries?.length || data.metrica
+              )}
+              emptyMessage="Нет данных ни Вебмастера, ни Метрики. Подключите Яндекс ID, выберите сайт и счётчик."
               buildPayload={() => buildYandexAdvisorPayload(period, data)}
             />
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
